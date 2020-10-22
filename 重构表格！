@@ -1,0 +1,96 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Oct 21 19:18:56 2020
+
+@author: Administrator
+"""
+
+import os
+os.chdir('C:/Users/Administrator/Desktop/20201021')
+
+import pandas as pd
+import numpy as np
+
+
+def savetxt(filename,x):
+    np.savetxt(filename,x,delimiter = '\t',fmt='%s')
+
+
+
+
+cols=["n"+str(x) for x in range(50)]
+
+
+df=pd.read_csv("./out/merged_bundary_level.txt_protein_coding_gene_TSS_1_2k.txt.txt",names=cols,sep = '\t',header =None)
+
+df=df.dropna(axis=1,how="all")
+df1=df.iloc[:,0:4]
+df2=df.iloc[:,4:9]
+df3=df.iloc[:,9:14]
+df4=df.iloc[:,14:19]
+df5=df.iloc[:,19:24]
+
+df1df2=pd.concat([df1,df2],axis=1) #overlap
+
+
+df1df3=pd.concat([df1,df3],axis=1).dropna(axis=0) #第一次重复项目
+df1df3.columns=["n"+str(x) for x in range(9)]###改名
+df1df4=pd.concat([df1,df4],axis=1).dropna(axis=0) #2次重复的项目
+df1df4.columns=["n"+str(x) for x in range(9)]
+df1df5=pd.concat([df1,df5],axis=1).dropna(axis=0) #3次重复的项目
+df1df5.columns=["n"+str(x) for x in range(9)]
+
+
+dff=pd.concat([df1df2,df1df3,df1df4,df1df5],axis=0)
+
+dff=dff.iloc[:,[0,1,2,3,8]]
+
+#df[10][df[10] != 0]=1
+#value = 0
+#df = df.fillna(value)
+
+#dff=dff.fillna(0)
+dff=dff.dropna()
+
+
+dfESgene=pd.read_csv("./ESgene.txt",names=cols,sep = '\t',header =None)
+dfESgene=pd.DataFrame(dfESgene.iloc[:,0])
+dfESgene.columns=["n8"]
+
+
+#mdf=pd.merge(dff,dfESgene,on="n8",how='left')
+#交集为1
+#差集为0
+
+mdf=pd.merge(dff,dfESgene,on="n8")  ##交集
+
+##构建列表
+mdf["ESgene.txt"]=1
+##去重
+mdf=mdf.drop_duplicates() ###这里果然有一个重复的基因,需要加等号才能成功
+
+
+mdf=pd.merge(dff,mdf,how="left")
+
+
+adf=mdf
+
+
+dfESgene=pd.read_csv("./natureReviewCancerDrivingGene.txt",names=cols,sep = '\t',header =None)
+dfESgene=pd.DataFrame(dfESgene.iloc[:,0])
+dfESgene.columns=["n8"]
+
+kdf=pd.merge(dff,dfESgene,on="n8")  ##交集
+
+##构建列表
+kdf["natureReviewCancerDrivingGene.txt"]=1
+##去重
+kdf=kdf.drop_duplicates() ###这里果然有一个重复的基因,需要加等号才能成功
+
+mdf=pd.merge(mdf,kdf,how="left")
+
+
+
+mdf["house_keeping_genes"]=0
+mdf.fillna(value=0,inplace = True)
+mdf.to_csv("overlap.csv",index=0)
